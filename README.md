@@ -13,3 +13,7 @@ Universal alias generator (MK Cyrillic -> Latin transliteration) for extensions 
 Works in com_content and any other component which uses title/name and alias/slug.
 
 Tested with com_content, DP Calendar, Phoca Gallery on Joomla 6.0.3
+
+Simply type the Title in Cyrillic and leave the alias field empty.
+
+Download the zip file and install it as any other Joomla extensions, then in Plugins, look for MK Alias and enable the plugin.

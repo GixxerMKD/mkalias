@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="content" method="upgrade">
+    <name>plg_content_mkalias</name>
+    <author>Baze Martinovski</author>
+    <creationDate>2026-03-03</creationDate>
+    <copyright>MIT</copyright>
+    <license>MIT</license>
+    <version>1.5.0</version>
+    <description>Auto-generates Latin (transliterated) aliases from Macedonian Cyrillic titles when alias is left empty. Works across components that provide title/name + alias/slug.</description>
+
+    <files>
+        <filename plugin="mkalias">mkalias.php</filename>
+        <filename>index.html</filename>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/plg_content_mkalias.ini</language>
+        <language tag="en-GB">language/en-GB/plg_content_mkalias.sys.ini</language>
+    </languages>
+</extension>

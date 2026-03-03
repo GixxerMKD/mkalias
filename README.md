@@ -14,6 +14,8 @@ Works in com_content and any other component which uses title/name and alias/slu
 
 Tested with com_content, DP Calendar, Phoca Gallery on Joomla 6.0.3
 
+How does it work?
 Simply type the Title in Cyrillic and leave the alias field empty.
 
+How to install?
 Download the zip file and install it as any other Joomla extensions, then in Plugins, look for MK Alias and enable the plugin.

@@ -1,35 +1,18 @@
 <?php
-/**
- * @package     Joomla.Plugin
- * @subpackage  Content.mkalias
- *
- * @license     MIT
- */
-
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Filter\OutputFilter;
 use Joomla\CMS\Plugin\CMSPlugin;
 
 /**
- * Universal alias generator (MK Cyrillic -> Latin transliteration) for extensions that use
- * a title/name field and an alias/slug field.
+ * Universal alias generator (MK Cyrillic -> Latin transliteration).
  *
- * Transliteration rules:
- * gj = ѓ | zh = ж | kj = ќ | ch = ч | lj = љ | nj = њ | dz = ѕ | dzj = џ | sh = ш
- *
- * Behavior:
- * - Runs only if the user left alias empty (based on submitted $data when available)
- * - Never overwrites a non-empty user-provided alias
- * - Supports common field names:
- *     Title: title, name
- *     Alias: alias, slug
+ * v1.6.0: fixes mixed-script titles where Joomla auto-generates alias only from Latin part.
  */
 class PlgContentMkalias extends CMSPlugin
 {
     public function onContentBeforeSave($context, &$item, $isNew, $data = []): bool
     {
-        // Find title field
         $titleField = $this->pickFirstField($item, ['title', 'name']);
         if ($titleField === null) {
             return true;
@@ -40,16 +23,13 @@ class PlgContentMkalias extends CMSPlugin
             return true;
         }
 
-        // Find alias field
         $aliasField = $this->pickFirstField($item, ['alias', 'slug']);
         if ($aliasField === null) {
             return true;
         }
 
-        // Determine whether user submitted an alias (if form data provides it)
+        // Submitted alias (if available)
         $submittedAlias = null;
-
-        // Most components use 'alias' in $data
         if (is_array($data)) {
             if (array_key_exists('alias', $data)) {
                 $submittedAlias = trim((string) $data['alias']);
@@ -58,32 +38,49 @@ class PlgContentMkalias extends CMSPlugin
             }
         }
 
-        // If we can see the submitted alias and it's not empty, do not override.
+        // If user provided a non-empty alias, never overwrite.
         if ($submittedAlias !== null && $submittedAlias !== '') {
             return true;
         }
 
-        // Some models pre-fill alias before plugins run; that's OK as long as user left it empty.
-        // If there is no submitted alias info (null), be conservative: only set when current alias is empty-ish OR looks like an auto date stamp.
-        $currentAlias = trim((string) $item->{$aliasField});
+        $currentAlias = trim((string) ($item->{$aliasField} ?? ''));
 
-        if ($submittedAlias === null) {
-            // Heuristic: allow override if empty or looks like YYYY-MM-DD-HH-MM-SS / YYYY-MM-DD-HH-MM
-            if ($currentAlias !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}(-\d{2})?$/', $currentAlias)) {
-                return true;
-            }
-        }
+        // Desired alias from transliterated title
+        $latin   = $this->mkToLatin($title);
+        $desired = OutputFilter::stringURLSafe($latin);
 
-        $latin = $this->mkToLatin($title);
-        $safe  = OutputFilter::stringURLSafe($latin);
-
-        if ($safe === '') {
+        if ($desired === '') {
             return true;
         }
 
-        $item->{$aliasField} = $safe;
+        // If submitted alias is explicitly empty => user left it blank => force our desired alias.
+        if ($submittedAlias !== null && $submittedAlias === '') {
+            $item->{$aliasField} = $desired;
+            return true;
+        }
+
+        // submitted alias not available (null) => override only when current alias looks auto-generated
+        if ($submittedAlias === null) {
+            if ($currentAlias === '' || $this->looksLikeDateAlias($currentAlias)) {
+                $item->{$aliasField} = $desired;
+                return true;
+            }
+
+            $autoFromOriginal = OutputFilter::stringURLSafe($title);
+            if ($autoFromOriginal !== '' && $currentAlias === $autoFromOriginal) {
+                $item->{$aliasField} = $desired;
+                return true;
+            }
+
+            return true;
+        }
 
         return true;
+    }
+
+    private function looksLikeDateAlias(string $alias): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}(-\d{2})?$/', $alias);
     }
 
     private function pickFirstField($obj, array $candidates): ?string
@@ -98,11 +95,16 @@ class PlgContentMkalias extends CMSPlugin
 
     private function mkToLatin(string $text): string
     {
-        // Normalize ѐ/ѝ sometimes used in MK texts
         $text = str_replace(['ѐ', 'Ѐ', 'ѝ', 'Ѝ'], ['е', 'Е', 'и', 'И'], $text);
 
+        // Normalize common dash characters to hyphen
+        $text = str_replace(
+            ["\xE2\x80\x90", "\xE2\x80\x91", "\xE2\x80\x92", "\xE2\x80\x93", "\xE2\x80\x94", "\xE2\x80\x95"],
+            '-',
+            $text
+        );
+
         $map = [
-            // Macedonian-specific
             'ѓ' => 'gj', 'Ѓ' => 'GJ',
             'ж' => 'zh', 'Ж' => 'ZH',
             'ќ' => 'kj', 'Ќ' => 'KJ',
@@ -113,7 +115,6 @@ class PlgContentMkalias extends CMSPlugin
             'џ' => 'dzj','Џ' => 'DZJ',
             'ш' => 'sh', 'Ш' => 'SH',
 
-            // Standard letters (MK)
             'а' => 'a', 'А' => 'A',
             'б' => 'b', 'Б' => 'B',
             'в' => 'v', 'В' => 'V',

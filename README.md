@@ -1,4 +1,4 @@
-Universal alias generator (MK Cyrillic -> Latin transliteration) for extensions that use a title/name field and an alias/slug field.
+Universal alias generator for Joomla 6 (MK Cyrillic -> Latin transliteration) for extensions that use a title/name field and an alias/slug field.
  
  Transliteration rules:
  gj = ѓ | zh = ж | kj = ќ | ch = ч | lj = љ | nj = њ | dz = ѕ | dzj = џ | sh = ш
